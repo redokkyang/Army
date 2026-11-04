@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>抽象時間 — 手繪印花時鐘</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f2ee;
+            --bg-alt: #ebe8e2;
+            --panel: #ffffff;
+            --ink: #2b2a27;
+            --ink-soft: #78756d;
+            --line: #ddd9d0;
+            --accent: #c05a3a;
+            --accent-ink: #ffffff;
+            color-scheme: light;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #171614;
+                --bg-alt: #1f1e1b;
+                --panel: #242320;
+                --ink: #ece9e3;
+                --ink-soft: #a29d92;
+                --line: #38362f;
+                --accent: #e07a53;
+                --accent-ink: #1a1a1a;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #171614;
+            --bg-alt: #1f1e1b;
+            --panel: #242320;
+            --ink: #ece9e3;
+            --ink-soft: #a29d92;
+            --line: #38362f;
+            --accent: #e07a53;
+            --accent-ink: #1a1a1a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: "Inter", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        .wrap {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: clamp(20px, 3.4vw, 44px) clamp(16px, 3.4vw, 36px) 60px;
+        }
+
+        header.site {
+            margin-bottom: clamp(20px, 3vw, 34px);
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.32em;
+            color: var(--ink-soft);
+            margin: 0 0 6px;
+        }
+
+        h1 {
+            font-size: clamp(22px, 3.2vw, 32px);
+            font-weight: 600;
+            margin: 0 0 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .sub {
+            font-size: 14px;
+            color: var(--ink-soft);
+            margin: 0;
+            max-width: 56ch;
+            line-height: 1.6;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+            gap: clamp(16px, 2.4vw, 28px);
+            align-items: start;
+        }
+
+        @media (max-width: 880px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: clamp(16px, 2.4vw, 24px);
+        }
+
+        .panel+.panel {
+            margin-top: 18px;
+        }
+
+        .panel h2 {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin: 0 0 16px;
+        }
+
+        /* --- Canvas area --- */
+        .canvas-shell {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background:
+                linear-gradient(45deg, var(--bg-alt) 25%, transparent 25%) -11px 0/22px 22px,
+                linear-gradient(-45deg, var(--bg-alt) 25%, transparent 25%) -11px 0/22px 22px,
+                linear-gradient(45deg, transparent 75%, var(--bg-alt) 75%) -11px 0/22px 22px,
+                linear-gradient(-45deg, transparent 75%, var(--bg-alt) 75%) -11px 0/22px 22px,
+                var(--panel);
+            touch-action: none;
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            cursor: crosshair;
+        }
+
+        #draw {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Toolbar --- */
+        .tools {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .row label.small {
+            font-size: 11px;
+            color: var(--ink-soft);
+            letter-spacing: 0.04em;
+            min-width: 52px;
+        }
+
+        .brush-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .brush-btn {
+            all: unset;
+            box-sizing: border-box;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px 4px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            font-size: 10.5px;
+            letter-spacing: 0.03em;
+            color: var(--ink-soft);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: border-color .15s, color .15s, background .15s;
+        }
+
+        .brush-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .brush-btn[aria-pressed="true"] {
+            border-color: var(--accent);
+            color: var(--ink);
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+        }
+
+        .brush-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        input[type="color"] {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+
+        .swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .swatch:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 90px;
+            accent-color: var(--accent);
+        }
+
+        .btn {
+            all: unset;
+            box-sizing: border-box;
+            cursor: pointer;
+            text-align: center;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        .btn:hover {
+            border-color: var(--ink-soft);
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            color: var(--accent-ink);
+            border-color: var(--accent);
+        }
+
+        .btn.primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn.ghost {
+            opacity: .85;
+        }
+
+        .pattern-opts {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* --- Clock preview --- */
+        .clock-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .clock-face-wrap {
+            position: relative;
+            width: min(100%, 340px);
+            aspect-ratio: 1/1;
+        }
+
+        .clock-dial {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: var(--panel);
+            background-size: cover;
+            background-position: center;
+            box-shadow:
+                0 18px 40px -16px rgba(0, 0, 0, 0.28),
+                0 2px 0 rgba(255, 255, 255, 0.4) inset,
+                0 0 0 10px var(--panel);
+            border: 1px solid var(--line);
+            transition: background-image .4s ease;
+        }
+
+        .tick {
+            position: absolute;
+            left: 50%;
+            top: 7%;
+            width: 2px;
+            height: 10px;
+            background: var(--ink);
+            opacity: .35;
+            transform-origin: 50% 150px;
+            border-radius: 2px;
+        }
+
+        .tick.major {
+            width: 3px;
+            height: 14px;
+            opacity: .55;
+        }
+
+        .hand {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform-origin: 50% 100%;
+            border-radius: 6px;
+            background: var(--ink);
+        }
+
+        .hand.hour {
+            width: 6px;
+            height: 26%;
+            margin: -26% 0 0 -3px;
+            background: var(--ink);
+        }
+
+        .hand.minute {
+            width: 4px;
+            height: 36%;
+            margin: -36% 0 0 -2px;
+            background: var(--ink);
+            opacity: .85;
+        }
+
+        .hand.second {
+            width: 2px;
+            height: 40%;
+            margin: -40% 0 0 -1px;
+            background: var(--accent);
+        }
+
+        .hub {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            margin: -6px 0 0 -6px;
+            border-radius: 50%;
+            background: var(--ink);
+            box-shadow: 0 0 0 3px var(--panel);
+        }
+
+        .readout {
+            font-variant-numeric: tabular-nums;
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.08em;
+        }
+
+        .hint {
+            font-size: 11.5px;
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+
+        .hint strong {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        a.dl {
+            color: var(--accent);
+            text-decoration: none;
+            border-bottom: 1px solid currentColor;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .clock-dial {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+
+        <header class="site">
+            <p class="eyebrow">ABSTRACT TIME · STUDIO</p>
+            <h1>手繪印花時鐘</h1>
+            <p class="sub">在左邊畫布上自由創作,挑選不同的畫筆與顏色,畫完後按「套用為錶面印花」,你的筆觸就會變成環繞時間流動的圖樣。</p>
+        </header>
+
+        <div class="layout">
+
+            <!-- ============ Drawing studio ============ -->
+            <section class="panel">
+                <h2>畫布</h2>
+                <div class="canvas-shell">
+                    <canvas id="draw" width="640" height="640" aria-label="繪圖畫布"></canvas>
+                </div>
+
+                <div class="tools">
+                    <div class="row">
+                        <span class="small">畫筆</span>
+                    </div>
+                    <div class="brush-grid" role="group" aria-label="選擇畫筆">
+                        <button class="brush-btn" data-tool="pencil" aria-pressed="true" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <path d="M4 20l1-4L16 5l3 3L8 19l-4 1z" />
+                            </svg>
+                            鉛筆
+                        </button>
+                        <button class="brush-btn" data-tool="marker" aria-pressed="false" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <rect x="6" y="3" width="6" height="9" rx="1.5" />
+                                <path d="M7 12l1 7h4l1-7" />
+                            </svg>
+                            麥克筆
+                        </button>
+                        <button class="brush-btn" data-tool="spray" aria-pressed="false" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <circle cx="9" cy="15" r="1" />
+                                <circle cx="13" cy="12" r="1" />
+                                <circle cx="16" cy="16" r="1" />
+                                <circle cx="11" cy="18" r="1" />
+                                <circle cx="15" cy="9" r="1" />
+                                <path d="M4 20l6-10" stroke-linecap="round" />
+                            </svg>
+                            噴槍
+                        </button>
+                        <button class="brush-btn" data-tool="calligraphy" aria-pressed="false" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <path d="M5 19c4-9 8-13 14-15" />
+                                <path d="M5 19l2-1 1 2z" fill="currentColor" stroke="none" />
+                            </svg>
+                            書法筆
+                        </button>
+                        <button class="brush-btn" data-tool="eraser" aria-pressed="false" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <rect x="5" y="11" width="12" height="7" rx="1.5" transform="rotate(-20 11 14)" />
+                                <path d="M4 19h16" />
+                            </svg>
+                            橡皮擦
+                        </button>
+                    </div>
+
+                    <div class="row">
+                        <span class="small">顏色</span>
+                        <input type="color" id="colorPicker" value="#2b2a27" aria-label="自訂顏色">
+                        <button class="swatch" style="background:#2b2a27" data-color="#2b2a27" aria-label="墨黑"></button>
+                        <button class="swatch" style="background:#c05a3a" data-color="#c05a3a" aria-label="赤陶"></button>
+                        <button class="swatch" style="background:#8a7a5c" data-color="#8a7a5c" aria-label="土黃"></button>
+                        <button class="swatch" style="background:#4c6b63" data-color="#4c6b63" aria-label="墨綠"></button>
+                        <button class="swatch" style="background:#39506e" data-color="#39506e" aria-label="靛藍"></button>
+                        <button class="swatch" style="background:#f4f2ee;border-color:#ccc7bc" data-color="#f4f2ee"
+                            aria-label="米白"></button>
+                    </div>
+
+                    <div class="row">
+                        <span class="small">筆刷大小</span>
+                        <input type="range" id="sizeRange" min="1" max="40" value="6">
+                        <span class="readout" id="sizeLabel">6px</span>
+                    </div>
+
+                    <div class="row">
+                        <button class="btn ghost" id="undoBtn" type="button">復原</button>
+                        <button class="btn ghost" id="clearBtn" type="button">清除畫布</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Pattern + clock ============ -->
+            <div>
+                <section class="panel">
+                    <h2>印花設定</h2>
+                    <div class="pattern-opts">
+                        <div class="row">
+                            <span class="small">重複次數</span>
+                            <input type="range" id="tileRange" min="1" max="5" value="3">
+                            <span class="readout" id="tileLabel">3 × 3</span>
+                        </div>
+                        <div class="row">
+                            <label class="small" for="mirrorToggle"
+                                style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" id="mirrorToggle" checked style="accent-color:var(--accent)">
+                                隔格鏡射(較不死板的印花感)
+                            </label>
+                        </div>
+                        <div class="row">
+                            <button class="btn primary" id="applyBtn" type="button">套用為錶面印花</button>
+                            <button class="btn ghost" id="resetFaceBtn" type="button">還原素色錶面</button>
+                        </div>
+                        <p class="hint" id="dlHint"></p>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>即時預覽</h2>
+                    <div class="clock-stage">
+                        <div class="clock-face-wrap">
+                            <div class="clock-dial" id="dial">
+                                <div class="tick" id="ticks-holder"></div>
+                                <div class="hand hour" id="hourHand"></div>
+                                <div class="hand minute" id="minuteHand"></div>
+                                <div class="hand second" id="secondHand"></div>
+                                <div class="hub"></div>
+                            </div>
+                        </div>
+                        <div class="readout" id="timeReadout">00:00:00</div>
+                    </div>
+                </section>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            'use strict';
+            const $ = (s) => document.querySelector(s);
+            const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+            /* =================================================================
+               1. Drawing canvas + brush engine
+               ================================================================= */
+            const canvas = $('#draw');
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+            ctx.fillStyle = '#fdfcfa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const state = { tool: 'pencil', color: '#2b2a27', size: 6, drawing: false, last: null };
+            const history = [];
+            const MAX_HISTORY = 20;
+
+            function pushHistory() {
+                history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+                if (history.length > MAX_HISTORY) history.shift();
+            }
+            function undo() {
+                if (history.length < 1) return;
+                const prev = history.pop();
+                if (prev) ctx.putImageData(prev, 0, 0);
+                else { ctx.fillStyle = '#fdfcfa'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            }
+
+            function toCanvasPoint(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                return { x, y };
+            }
+
+            /* --- brush strokes --- */
+            function strokePencil(p0, p1) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = state.color;
+                ctx.lineWidth = Math.max(1, state.size * 0.35);
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+            }
+            function strokeMarker(p0, p1) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 0.45;
+                ctx.strokeStyle = state.color;
+                ctx.lineWidth = state.size * 1.8;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            function strokeSpray(p) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = state.color;
+                const density = Math.round(state.size * 1.5);
+                const radius = state.size * 1.6;
+                for (let i = 0; i < density; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const r = Math.random() * radius;
+                    const dx = Math.cos(a) * r, dy = Math.sin(a) * r;
+                    ctx.beginPath();
+                    ctx.arc(p.x + dx, p.y + dy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            function strokeCalligraphy(p0, p1) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+                const nib = Math.PI / 4; // 固定 45° 筆尖角度
+                const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+                const w = Math.max(1.2, state.size * Math.abs(Math.sin(angle - nib)) + state.size * 0.18);
+                ctx.strokeStyle = state.color;
+                ctx.lineWidth = w;
+                ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+            }
+            function strokeEraser(p0, p1) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = state.size * 1.6;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
+                pushHistory();
+                state.drawing = true;
+                const p = toCanvasPoint(e);
+                state.last = p;
+                if (state.tool === 'spray') strokeSpray(p);
+                else if (state.tool === 'pencil') strokePencil(p, { x: p.x + 0.01, y: p.y + 0.01 });
+            });
+            canvas.addEventListener('pointermove', (e) => {
+                if (!state.drawing) return;
+                const p = toCanvasPoint(e);
+                switch (state.tool) {
+                    case 'pencil': strokePencil(state.last, p); break;
+                    case 'marker': strokeMarker(state.last, p); break;
+                    case 'spray': strokeSpray(p); break;
+                    case 'calligraphy': strokeCalligraphy(state.last, p); break;
+                    case 'eraser': strokeEraser(state.last, p); break;
+                }
+                state.last = p;
+            });
+            function endStroke(e) { state.drawing = false; }
+            canvas.addEventListener('pointerup', endStroke);
+            canvas.addEventListener('pointerleave', endStroke);
+            canvas.addEventListener('pointercancel', endStroke);
+
+            /* --- toolbar wiring --- */
+            $$('.brush-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    $$('.brush-btn').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+                    btn.setAttribute('aria-pressed', 'true');
+                    state.tool = btn.dataset.tool;
+                });
+            });
+            $('#colorPicker').addEventListener('input', (e) => { state.color = e.target.value; });
+            $$('.swatch').forEach((s) => s.addEventListener('click', () => {
+                state.color = s.dataset.color;
+                $('#colorPicker').value = s.dataset.color;
+            }));
+            $('#sizeRange').addEventListener('input', (e) => {
+                state.size = Number(e.target.value);
+                $('#sizeLabel').textContent = state.size + 'px';
+            });
+            $('#clearBtn').addEventListener('click', () => {
+                pushHistory();
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = '#fdfcfa';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            });
+            $('#undoBtn').addEventListener('click', undo);
+
+            /* =================================================================
+               2. Pattern generator (hand-drawn → repeating print)
+               ================================================================= */
+            const tileRange = $('#tileRange'), tileLabel = $('#tileLabel'), mirrorToggle = $('#mirrorToggle');
+            tileRange.addEventListener('input', () => {
+                tileLabel.textContent = `${tileRange.value} × ${tileRange.value}`;
+            });
+
+            function makePattern(source, cols, rows, mirror) {
+                const tile = source.width;
+                const out = document.createElement('canvas');
+                out.width = tile * cols;
+                out.height = tile * rows;
+                const octx = out.getContext('2d');
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        octx.save();
+                        octx.translate(c * tile + tile / 2, r * tile + tile / 2);
+                        if (mirror && (r + c) % 2 === 1) octx.scale(-1, 1);
+                        octx.drawImage(source, -tile / 2, -tile / 2);
+                        octx.restore();
+                    }
+                }
+                return out;
+            }
+
+            const dial = $('#dial');
+            const dlHint = $('#dlHint');
+
+            $('#applyBtn').addEventListener('click', () => {
+                const n = Number(tileRange.value);
+                const tiled = makePattern(canvas, n, n, mirrorToggle.checked);
+                const url = tiled.toDataURL('image/png');
+                dial.style.backgroundImage = `url(${url})`;
+                dlHint.innerHTML = `已套用 ${n}×${n} 印花。<a class="dl" href="${url}" download="abstract-time-pattern.png">下載這張圖樣</a>`;
+            });
+
+            $('#resetFaceBtn').addEventListener('click', () => {
+                dial.style.backgroundImage = 'none';
+                dlHint.textContent = '';
+            });
+
+            /* =================================================================
+               3. Clock hands (flat, no 3D — just accurate rotation)
+               ================================================================= */
+            const ticksHolder = $('#ticks-holder');
+            ticksHolder.remove();
+            for (let i = 0; i < 12; i++) {
+                const t = document.createElement('div');
+                t.className = 'tick' + (i % 3 === 0 ? ' major' : '');
+                t.style.transform = `translate(-50%,-50%) rotate(${i * 30}deg)`;
+                dial.appendChild(t);
+            }
+
+            const hourHand = $('#hourHand'), minuteHand = $('#minuteHand'), secondHand = $('#secondHand');
+            const timeReadout = $('#timeReadout');
+            const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const pad = (n) => String(n).padStart(2, '0');
+
+            function tick() {
+                const d = new Date();
+                const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+                const sf = reduce ? s : s + d.getMilliseconds() / 1000;
+                hourHand.style.transform = `translate(-50%,0) rotate(${((h % 12) * 30 + m * 0.5).toFixed(2)}deg)`;
+                minuteHand.style.transform = `translate(-50%,0) rotate(${(m * 6 + sf * 0.1).toFixed(2)}deg)`;
+                secondHand.style.transform = `translate(-50%,0) rotate(${(sf * 6).toFixed(2)}deg)`;
+                timeReadout.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        })();
+    </script>
+</body>
+
+</html>
