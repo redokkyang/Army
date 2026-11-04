@@ -7,7 +7,7 @@
     <title>抽象時間 — 手繪印花時鐘</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f4f2ee;
@@ -18,6 +18,14 @@
             --line: #ddd9d0;
             --accent: #c05a3a;
             --accent-ink: #ffffff;
+
+            /* 使用者可調 */
+            --dial-bg: #fdfcfa;
+            --card-bg: #e9e5dd;
+            --c-hour: #2b2a27;
+            --c-min: #2b2a27;
+            --c-sec: #c05a3a;
+            --c-tick: #2b2a27;
             color-scheme: light;
         }
 
@@ -32,17 +40,6 @@
                 --accent: #e07a53;
                 --accent-ink: #1a1a1a;
             }
-        }
-
-        :root[data-theme="dark"] {
-            --bg: #171614;
-            --bg-alt: #1f1e1b;
-            --panel: #242320;
-            --ink: #ece9e3;
-            --ink-soft: #a29d92;
-            --line: #38362f;
-            --accent: #e07a53;
-            --accent-ink: #1a1a1a;
         }
 
         * {
@@ -76,7 +73,7 @@
 
         .eyebrow {
             font-size: 11px;
-            letter-spacing: 0.32em;
+            letter-spacing: .32em;
             color: var(--ink-soft);
             margin: 0 0 6px;
         }
@@ -85,7 +82,7 @@
             font-size: clamp(22px, 3.2vw, 32px);
             font-weight: 600;
             margin: 0 0 8px;
-            letter-spacing: -0.01em;
+            letter-spacing: -.01em;
         }
 
         .sub {
@@ -123,27 +120,23 @@
         .panel h2 {
             font-size: 13px;
             font-weight: 600;
-            letter-spacing: 0.08em;
+            letter-spacing: .08em;
             text-transform: uppercase;
             color: var(--ink-soft);
             margin: 0 0 16px;
         }
 
-        /* --- Canvas area --- */
         .canvas-shell {
             position: relative;
             border-radius: 14px;
             overflow: hidden;
-            background:
-                linear-gradient(45deg, var(--bg-alt) 25%, transparent 25%) -11px 0/22px 22px,
-                linear-gradient(-45deg, var(--bg-alt) 25%, transparent 25%) -11px 0/22px 22px,
-                linear-gradient(45deg, transparent 75%, var(--bg-alt) 75%) -11px 0/22px 22px,
-                linear-gradient(-45deg, transparent 75%, var(--bg-alt) 75%) -11px 0/22px 22px,
-                var(--panel);
+            background: var(--dial-bg);
+            border: 1px solid var(--line);
             touch-action: none;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 1/1;
             width: 100%;
             cursor: crosshair;
+            transition: background-color .25s ease;
         }
 
         #draw {
@@ -152,7 +145,6 @@
             height: 100%;
         }
 
-        /* --- Toolbar --- */
         .tools {
             display: flex;
             flex-direction: column;
@@ -167,11 +159,11 @@
             flex-wrap: wrap;
         }
 
-        .row label.small {
+        .small {
             font-size: 11px;
             color: var(--ink-soft);
-            letter-spacing: 0.04em;
-            min-width: 52px;
+            letter-spacing: .04em;
+            min-width: 56px;
         }
 
         .brush-grid {
@@ -189,7 +181,6 @@
             border-radius: 10px;
             border: 1px solid var(--line);
             font-size: 10.5px;
-            letter-spacing: 0.03em;
             color: var(--ink-soft);
             display: flex;
             flex-direction: column;
@@ -214,38 +205,57 @@
             outline-offset: 2px;
         }
 
-        input[type="color"] {
-            width: 36px;
-            height: 36px;
+        .pick {
+            width: 40px;
+            height: 40px;
             padding: 0;
             border: 1px solid var(--line);
-            border-radius: 50%;
+            border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
             background: none;
+            flex: none;
         }
 
-        input[type="color"]::-webkit-color-swatch-wrapper {
+        .pick.round {
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .pick::-webkit-color-swatch-wrapper {
             padding: 0;
         }
 
-        input[type="color"]::-webkit-color-swatch {
+        .pick::-webkit-color-swatch {
             border: none;
-            border-radius: 50%;
+        }
+
+        .pick:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
         .swatch {
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 1px solid var(--line);
             cursor: pointer;
             padding: 0;
+            flex: none;
         }
 
         .swatch:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
+        }
+
+        .hexout {
+            font-size: 11px;
+            color: var(--ink-soft);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: .06em;
         }
 
         input[type="range"] {
@@ -263,7 +273,6 @@
             border-radius: 10px;
             font-size: 12.5px;
             font-weight: 500;
-            letter-spacing: 0.02em;
             border: 1px solid var(--line);
             color: var(--ink);
         }
@@ -283,21 +292,52 @@
             border-color: var(--accent);
         }
 
-        .btn.primary:hover {
-            filter: brightness(1.05);
+        .btn[disabled] {
+            opacity: .4;
+            cursor: not-allowed;
         }
 
-        .btn.ghost {
-            opacity: .85;
+        /* 社群尺寸選單 */
+        .size-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+            gap: 8px;
         }
 
-        .pattern-opts {
+        .size-btn {
+            all: unset;
+            box-sizing: border-box;
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 3px;
         }
 
-        /* --- Clock preview --- */
+        .size-btn[aria-pressed="true"] {
+            border-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+        }
+
+        .size-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .size-btn b {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .size-btn span {
+            font-size: 10px;
+            color: var(--ink-soft);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 時鐘 */
         .clock-stage {
             display: flex;
             flex-direction: column;
@@ -315,64 +355,71 @@
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            background: var(--panel);
+            background-color: var(--dial-bg);
             background-size: cover;
             background-position: center;
-            box-shadow:
-                0 18px 40px -16px rgba(0, 0, 0, 0.28),
-                0 2px 0 rgba(255, 255, 255, 0.4) inset,
-                0 0 0 10px var(--panel);
+            box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .28), 0 0 0 10px var(--panel);
             border: 1px solid var(--line);
-            transition: background-image .4s ease;
+            transition: background-color .25s ease;
         }
 
-        .tick {
+        .spoke {
             position: absolute;
             left: 50%;
-            top: 7%;
+            top: 0;
+            width: 0;
+            height: 100%;
+            transform-origin: 50% 50%;
+        }
+
+        .spoke.tick::before {
+            content: "";
+            position: absolute;
+            top: 5%;
+            left: 50%;
             width: 2px;
-            height: 10px;
-            background: var(--ink);
+            height: 5%;
+            margin-left: -1px;
+            background: var(--c-tick);
             opacity: .35;
-            transform-origin: 50% 150px;
             border-radius: 2px;
         }
 
-        .tick.major {
+        .spoke.tick.major::before {
             width: 3px;
-            height: 14px;
-            opacity: .55;
+            height: 7.5%;
+            margin-left: -1.5px;
+            opacity: .6;
         }
 
-        .hand {
+        .spoke.hand::before {
+            content: "";
             position: absolute;
             left: 50%;
-            top: 50%;
-            transform-origin: 50% 100%;
-            border-radius: 6px;
-            background: var(--ink);
+            bottom: 50%;
+            width: var(--w);
+            height: var(--len);
+            margin-left: calc(var(--w)/-2);
+            background: var(--c);
+            border-radius: 999px;
         }
 
         .hand.hour {
-            width: 6px;
-            height: 26%;
-            margin: -26% 0 0 -3px;
-            background: var(--ink);
+            --w: 7px;
+            --len: 26%;
+            --c: var(--c-hour);
         }
 
         .hand.minute {
-            width: 4px;
-            height: 36%;
-            margin: -36% 0 0 -2px;
-            background: var(--ink);
-            opacity: .85;
+            --w: 4.5px;
+            --len: 36%;
+            --c: var(--c-min);
         }
 
         .hand.second {
-            width: 2px;
-            height: 40%;
-            margin: -40% 0 0 -1px;
-            background: var(--accent);
+            --w: 2px;
+            --len: 41%;
+            --c: var(--c-sec);
         }
 
         .hub {
@@ -383,45 +430,175 @@
             height: 12px;
             margin: -6px 0 0 -6px;
             border-radius: 50%;
-            background: var(--ink);
-            box-shadow: 0 0 0 3px var(--panel);
+            background: var(--c-hour);
+            box-shadow: 0 0 0 3px var(--dial-bg);
         }
 
         .readout {
             font-variant-numeric: tabular-nums;
             font-size: 13px;
             color: var(--ink-soft);
-            letter-spacing: 0.08em;
+            letter-spacing: .08em;
         }
 
         .hint {
             font-size: 11.5px;
             color: var(--ink-soft);
             line-height: 1.6;
-        }
-
-        .hint strong {
-            color: var(--ink);
-            font-weight: 600;
+            margin: 0;
         }
 
         a.dl {
             color: var(--accent);
-            text-decoration: none;
-            border-bottom: 1px solid currentColor;
         }
 
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            clip-path: inset(50%);
-            white-space: nowrap;
+        /* =========== 全螢幕模式 =========== */
+        #fs {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            background: var(--card-bg);
+            padding: calc(env(safe-area-inset-top, 0px) + 4vmin) 5vmin calc(env(safe-area-inset-bottom, 0px) + 4vmin);
+            align-items: center;
+            justify-content: center;
+            gap: 7vmin;
+        }
+
+        #fs.on {
+            display: flex;
+        }
+
+        #fs .fs-wrap {
+            position: relative;
+            width: min(52vmin, 58vh);
+            aspect-ratio: 1/1;
+            flex: none;
+        }
+
+        #fs .clock-dial {
+            box-shadow: 0 6vmin 12vmin -5vmin rgba(0, 0, 0, .35), 0 0 0 1.4vmin var(--card-bg);
+            border: none;
+        }
+
+        #fs .hand.hour {
+            --w: 1.5vmin;
+        }
+
+        #fs .hand.minute {
+            --w: 1vmin;
+        }
+
+        #fs .hand.second {
+            --w: .45vmin;
+        }
+
+        #fs .hub {
+            width: 2.4vmin;
+            height: 2.4vmin;
+            margin: -1.2vmin 0 0 -1.2vmin;
+            box-shadow: 0 0 0 .6vmin var(--dial-bg);
+        }
+
+        #fs .spoke.tick::before {
+            width: .45vmin;
+            margin-left: -.225vmin;
+        }
+
+        #fs .spoke.tick.major::before {
+            width: .7vmin;
+            margin-left: -.35vmin;
+        }
+
+        .fs-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1.6vmin;
+            color: var(--c-hour);
+        }
+
+        .fs-time {
+            font-size: clamp(44px, 13vmin, 190px);
+            font-weight: 200;
+            letter-spacing: -.02em;
+            font-variant-numeric: tabular-nums;
+            line-height: .95;
+        }
+
+        .fs-time .sec {
+            font-size: .44em;
+            opacity: .55;
+            margin-left: .12em;
+            letter-spacing: .02em;
+        }
+
+        .fs-date {
+            font-size: clamp(12px, 2.1vmin, 22px);
+            font-weight: 300;
+            letter-spacing: .3em;
+            opacity: .62;
+        }
+
+        .fs-mark {
+            font-size: clamp(9px, 1.3vmin, 13px);
+            letter-spacing: .4em;
+            opacity: .35;
+            margin-top: 1vmin;
+        }
+
+        @media (max-aspect-ratio: 1/1) {
+            #fs {
+                flex-direction: column;
+                gap: 5vmin;
+            }
+
+            #fs .fs-wrap {
+                width: min(74vmin, 46vh);
+            }
+
+            .fs-info {
+                align-items: center;
+                text-align: center;
+            }
+        }
+
+        #fsExit {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 16px);
+            right: 16px;
+            z-index: 101;
+            all: unset;
+            box-sizing: border-box;
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 11px;
+            letter-spacing: .14em;
+            color: var(--c-hour);
+            border: 1px solid currentColor;
+            opacity: 0;
+            transition: opacity .3s ease;
+            pointer-events: none;
+        }
+
+        #fs.on #fsExit {
+            pointer-events: auto;
+        }
+
+        #fsExit.show {
+            opacity: .5;
+        }
+
+        #fsExit:hover,
+        #fsExit:focus-visible {
+            opacity: 1;
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .clock-dial {
+
+            .clock-dial,
+            .canvas-shell,
+            #fsExit {
                 transition: none;
             }
         }
@@ -434,36 +611,29 @@
         <header class="site">
             <p class="eyebrow">ABSTRACT TIME · STUDIO</p>
             <h1>手繪印花時鐘</h1>
-            <p class="sub">在左邊畫布上自由創作,挑選不同的畫筆與顏色,畫完後按「套用為錶面印花」,你的筆觸就會變成環繞時間流動的圖樣。</p>
+            <p class="sub">在畫布上自由創作，把筆觸變成錶面印花。完成後可以進入全螢幕當桌面時鐘，或輸出成各種社群尺寸的分享圖。</p>
         </header>
 
         <div class="layout">
 
-            <!-- ============ Drawing studio ============ -->
+            <!-- ===== 畫布 ===== -->
             <section class="panel">
                 <h2>畫布</h2>
-                <div class="canvas-shell">
+                <div class="canvas-shell" id="shell">
                     <canvas id="draw" width="640" height="640" aria-label="繪圖畫布"></canvas>
                 </div>
 
                 <div class="tools">
-                    <div class="row">
-                        <span class="small">畫筆</span>
-                    </div>
                     <div class="brush-grid" role="group" aria-label="選擇畫筆">
                         <button class="brush-btn" data-tool="pencil" aria-pressed="true" type="button">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                 <path d="M4 20l1-4L16 5l3 3L8 19l-4 1z" />
-                            </svg>
-                            鉛筆
-                        </button>
+                            </svg>鉛筆</button>
                         <button class="brush-btn" data-tool="marker" aria-pressed="false" type="button">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                 <rect x="6" y="3" width="6" height="9" rx="1.5" />
                                 <path d="M7 12l1 7h4l1-7" />
-                            </svg>
-                            麥克筆
-                        </button>
+                            </svg>麥克筆</button>
                         <button class="brush-btn" data-tool="spray" aria-pressed="false" type="button">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                 <circle cx="9" cy="15" r="1" />
@@ -472,55 +642,72 @@
                                 <circle cx="11" cy="18" r="1" />
                                 <circle cx="15" cy="9" r="1" />
                                 <path d="M4 20l6-10" stroke-linecap="round" />
-                            </svg>
-                            噴槍
-                        </button>
+                            </svg>噴槍</button>
                         <button class="brush-btn" data-tool="calligraphy" aria-pressed="false" type="button">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                 <path d="M5 19c4-9 8-13 14-15" />
                                 <path d="M5 19l2-1 1 2z" fill="currentColor" stroke="none" />
-                            </svg>
-                            書法筆
-                        </button>
+                            </svg>書法筆</button>
                         <button class="brush-btn" data-tool="eraser" aria-pressed="false" type="button">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                                 <rect x="5" y="11" width="12" height="7" rx="1.5" transform="rotate(-20 11 14)" />
                                 <path d="M4 19h16" />
-                            </svg>
-                            橡皮擦
-                        </button>
+                            </svg>橡皮擦</button>
                     </div>
 
                     <div class="row">
-                        <span class="small">顏色</span>
-                        <input type="color" id="colorPicker" value="#2b2a27" aria-label="自訂顏色">
+                        <span class="small">筆刷顏色</span>
+                        <input type="color" class="pick" id="brushColor" value="#2b2a27" aria-label="筆刷顏色選擇器">
+                        <span class="hexout" id="brushHex">#2B2A27</span>
                         <button class="swatch" style="background:#2b2a27" data-color="#2b2a27" aria-label="墨黑"></button>
                         <button class="swatch" style="background:#c05a3a" data-color="#c05a3a" aria-label="赤陶"></button>
-                        <button class="swatch" style="background:#8a7a5c" data-color="#8a7a5c" aria-label="土黃"></button>
+                        <button class="swatch" style="background:#d8a13c" data-color="#d8a13c" aria-label="琥珀"></button>
                         <button class="swatch" style="background:#4c6b63" data-color="#4c6b63" aria-label="墨綠"></button>
                         <button class="swatch" style="background:#39506e" data-color="#39506e" aria-label="靛藍"></button>
-                        <button class="swatch" style="background:#f4f2ee;border-color:#ccc7bc" data-color="#f4f2ee"
-                            aria-label="米白"></button>
+                        <button class="swatch" style="background:#8c5a8e" data-color="#8c5a8e" aria-label="紫藤"></button>
                     </div>
 
                     <div class="row">
                         <span class="small">筆刷大小</span>
                         <input type="range" id="sizeRange" min="1" max="40" value="6">
-                        <span class="readout" id="sizeLabel">6px</span>
+                        <span class="readout" id="sizeLabel">6 px</span>
                     </div>
 
                     <div class="row">
-                        <button class="btn ghost" id="undoBtn" type="button">復原</button>
-                        <button class="btn ghost" id="clearBtn" type="button">清除畫布</button>
+                        <button class="btn" id="undoBtn" type="button" disabled>還原上一步</button>
+                        <button class="btn" id="clearBtn" type="button">清除筆跡</button>
                     </div>
                 </div>
             </section>
 
-            <!-- ============ Pattern + clock ============ -->
+            <!-- ===== 右欄 ===== -->
             <div>
                 <section class="panel">
+                    <h2>時鐘配色</h2>
+                    <div class="tools" style="margin-top:0">
+                        <div class="row">
+                            <span class="small">錶面底色</span>
+                            <input type="color" class="pick round" id="dialColor" value="#fdfcfa" aria-label="錶面底色">
+                            <span class="small" style="min-width:0">時針</span>
+                            <input type="color" class="pick round" id="hourColor" value="#2b2a27" aria-label="時針顏色">
+                            <span class="small" style="min-width:0">分針</span>
+                            <input type="color" class="pick round" id="minColor" value="#2b2a27" aria-label="分針顏色">
+                            <span class="small" style="min-width:0">秒針</span>
+                            <input type="color" class="pick round" id="secColor" value="#c05a3a" aria-label="秒針顏色">
+                            <span class="small" style="min-width:0">刻度</span>
+                            <input type="color" class="pick round" id="tickColor" value="#2b2a27" aria-label="刻度顏色">
+                        </div>
+                        <div class="row">
+                            <span class="small">外框底色</span>
+                            <input type="color" class="pick round" id="cardColor" value="#e9e5dd" aria-label="外框與分享圖底色">
+                            <span class="hint" style="min-width:0">用於全螢幕模式與分享圖的背景</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
                     <h2>印花設定</h2>
-                    <div class="pattern-opts">
+                    <div class="tools" style="margin-top:0">
                         <div class="row">
                             <span class="small">重複次數</span>
                             <input type="range" id="tileRange" min="1" max="5" value="3">
@@ -528,16 +715,14 @@
                         </div>
                         <div class="row">
                             <label class="small" for="mirrorToggle"
-                                style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                                <input type="checkbox" id="mirrorToggle" checked style="accent-color:var(--accent)">
-                                隔格鏡射(較不死板的印花感)
-                            </label>
+                                style="display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0">
+                                <input type="checkbox" id="mirrorToggle" checked
+                                    style="accent-color:var(--accent)">隔格鏡射</label>
                         </div>
                         <div class="row">
                             <button class="btn primary" id="applyBtn" type="button">套用為錶面印花</button>
-                            <button class="btn ghost" id="resetFaceBtn" type="button">還原素色錶面</button>
+                            <button class="btn" id="resetFaceBtn" type="button">移除印花</button>
                         </div>
-                        <p class="hint" id="dlHint"></p>
                     </div>
                 </section>
 
@@ -546,14 +731,32 @@
                     <div class="clock-stage">
                         <div class="clock-face-wrap">
                             <div class="clock-dial" id="dial">
-                                <div class="tick" id="ticks-holder"></div>
-                                <div class="hand hour" id="hourHand"></div>
-                                <div class="hand minute" id="minuteHand"></div>
-                                <div class="hand second" id="secondHand"></div>
+                                <div class="spoke hand hour" id="hourHand"></div>
+                                <div class="spoke hand minute" id="minuteHand"></div>
+                                <div class="spoke hand second" id="secondHand"></div>
                                 <div class="hub"></div>
                             </div>
                         </div>
                         <div class="readout" id="timeReadout">00:00:00</div>
+                        <button class="btn primary" id="fsBtn" type="button">進入全螢幕時鐘</button>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>輸出分享圖</h2>
+                    <div class="tools" style="margin-top:0">
+                        <div class="size-grid" id="sizeGrid" role="group" aria-label="選擇輸出尺寸"></div>
+                        <div class="row">
+                            <label class="small" for="showTimeToggle"
+                                style="display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0">
+                                <input type="checkbox" id="showTimeToggle" checked
+                                    style="accent-color:var(--accent)">在圖上顯示數字時間</label>
+                        </div>
+                        <div class="row">
+                            <button class="btn primary" id="exportBtn" type="button">下載 PNG</button>
+                            <button class="btn" id="exportTileBtn" type="button">下載純印花圖樣</button>
+                        </div>
+                        <p class="hint" id="exportHint">選一個尺寸，按下載即可。</p>
                     </div>
                 </section>
             </div>
@@ -561,216 +764,388 @@
         </div>
     </div>
 
+    <!-- ===== 全螢幕模式 ===== -->
+    <div id="fs" role="dialog" aria-label="全螢幕時鐘" aria-modal="true">
+        <div class="fs-wrap">
+            <div class="clock-dial" id="fsDial">
+                <div class="spoke hand hour" id="fsHour"></div>
+                <div class="spoke hand minute" id="fsMin"></div>
+                <div class="spoke hand second" id="fsSec"></div>
+                <div class="hub"></div>
+            </div>
+        </div>
+        <div class="fs-info">
+            <div class="fs-time" id="fsTime">00:00<span class="sec" id="fsSecTxt">00</span></div>
+            <div class="fs-date" id="fsDate">—</div>
+            <div class="fs-mark">ABSTRACT TIME</div>
+        </div>
+        <button id="fsExit" type="button">結束全螢幕 ESC</button>
+    </div>
+
     <script>
         (() => {
             'use strict';
             const $ = (s) => document.querySelector(s);
             const $$ = (s) => Array.from(document.querySelectorAll(s));
+            const root = document.documentElement;
+            const pad = (n) => String(n).padStart(2, '0');
 
             /* =================================================================
-               1. Drawing canvas + brush engine
+               1. 畫布（透明圖層，底色由 CSS 提供）
                ================================================================= */
             const canvas = $('#draw');
-            const ctx = canvas.getContext('2d', { willReadFrequently: false });
-            ctx.fillStyle = '#fdfcfa';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+            const ctx = canvas.getContext('2d');
             const state = { tool: 'pencil', color: '#2b2a27', size: 6, drawing: false, last: null };
-            const history = [];
-            const MAX_HISTORY = 20;
 
-            function pushHistory() {
-                history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-                if (history.length > MAX_HISTORY) history.shift();
-            }
-            function undo() {
-                if (history.length < 1) return;
-                const prev = history.pop();
-                if (prev) ctx.putImageData(prev, 0, 0);
-                else { ctx.fillStyle = '#fdfcfa'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            }
+            const colors = { dial: '#fdfcfa', card: '#e9e5dd', hour: '#2b2a27', min: '#2b2a27', sec: '#c05a3a', tick: '#2b2a27' };
 
-            function toCanvasPoint(e) {
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-                return { x, y };
-            }
+            let snapshot = null;
+            const undoBtn = $('#undoBtn');
+            function takeSnapshot() { snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); undoBtn.disabled = false; }
+            undoBtn.addEventListener('click', () => {
+                if (!snapshot) return;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.putImageData(snapshot, 0, 0);
+                snapshot = null; undoBtn.disabled = true;
+            });
 
-            /* --- brush strokes --- */
-            function strokePencil(p0, p1) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 1;
-                ctx.strokeStyle = state.color;
-                ctx.lineWidth = Math.max(1, state.size * 0.35);
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+            function pt(e) {
+                const r = canvas.getBoundingClientRect();
+                return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
             }
-            function strokeMarker(p0, p1) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 0.45;
-                ctx.strokeStyle = state.color;
-                ctx.lineWidth = state.size * 1.8;
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-                ctx.globalAlpha = 1;
+            function line(p0, p1, w, alpha) {
+                ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha;
+                ctx.strokeStyle = state.color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.globalAlpha = 1;
             }
-            function strokeSpray(p) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 1;
-                ctx.fillStyle = state.color;
-                const density = Math.round(state.size * 1.5);
-                const radius = state.size * 1.6;
-                for (let i = 0; i < density; i++) {
-                    const a = Math.random() * Math.PI * 2;
-                    const r = Math.random() * radius;
-                    const dx = Math.cos(a) * r, dy = Math.sin(a) * r;
-                    ctx.beginPath();
-                    ctx.arc(p.x + dx, p.y + dy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
-                    ctx.fill();
+            const bPencil = (a, b) => line(a, b, Math.max(1, state.size * .35), 1);
+            const bMarker = (a, b) => line(a, b, state.size * 1.8, .45);
+            function bSpray(p) {
+                ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = state.color;
+                const n = Math.round(state.size * 1.5), R = state.size * 1.6;
+                for (let i = 0; i < n; i++) {
+                    const a = Math.random() * Math.PI * 2, r = Math.random() * R;
+                    ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, Math.random() * 1.2 + .3, 0, Math.PI * 2); ctx.fill();
                 }
             }
-            function strokeCalligraphy(p0, p1) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 1;
-                const nib = Math.PI / 4; // 固定 45° 筆尖角度
-                const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
-                const w = Math.max(1.2, state.size * Math.abs(Math.sin(angle - nib)) + state.size * 0.18);
-                ctx.strokeStyle = state.color;
-                ctx.lineWidth = w;
-                ctx.lineCap = 'round';
-                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+            function bCalli(p0, p1) {
+                const nib = Math.PI / 4, ang = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+                line(p0, p1, Math.max(1.2, state.size * Math.abs(Math.sin(ang - nib)) + state.size * .18), 1);
             }
-            function strokeEraser(p0, p1) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.globalAlpha = 1;
-                ctx.lineWidth = state.size * 1.6;
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            function bEraser(p0, p1) {
+                ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 1;
+                ctx.lineWidth = state.size * 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
                 ctx.globalCompositeOperation = 'source-over';
             }
 
             canvas.addEventListener('pointerdown', (e) => {
-                canvas.setPointerCapture(e.pointerId);
-                pushHistory();
-                state.drawing = true;
-                const p = toCanvasPoint(e);
-                state.last = p;
-                if (state.tool === 'spray') strokeSpray(p);
-                else if (state.tool === 'pencil') strokePencil(p, { x: p.x + 0.01, y: p.y + 0.01 });
+                canvas.setPointerCapture(e.pointerId); takeSnapshot(); state.drawing = true;
+                const p = pt(e); state.last = p;
+                if (state.tool === 'spray') bSpray(p);
+                else if (state.tool === 'eraser') bEraser(p, { x: p.x + .01, y: p.y + .01 });
+                else bPencil(p, { x: p.x + .01, y: p.y + .01 });
             });
             canvas.addEventListener('pointermove', (e) => {
                 if (!state.drawing) return;
-                const p = toCanvasPoint(e);
-                switch (state.tool) {
-                    case 'pencil': strokePencil(state.last, p); break;
-                    case 'marker': strokeMarker(state.last, p); break;
-                    case 'spray': strokeSpray(p); break;
-                    case 'calligraphy': strokeCalligraphy(state.last, p); break;
-                    case 'eraser': strokeEraser(state.last, p); break;
-                }
+                const p = pt(e);
+                if (state.tool === 'spray') bSpray(p);
+                else ({ pencil: bPencil, marker: bMarker, calligraphy: bCalli, eraser: bEraser }[state.tool])(state.last, p);
                 state.last = p;
             });
-            function endStroke(e) { state.drawing = false; }
-            canvas.addEventListener('pointerup', endStroke);
-            canvas.addEventListener('pointerleave', endStroke);
-            canvas.addEventListener('pointercancel', endStroke);
+            ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) =>
+                canvas.addEventListener(ev, () => { state.drawing = false; }));
 
-            /* --- toolbar wiring --- */
-            $$('.brush-btn').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    $$('.brush-btn').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-                    btn.setAttribute('aria-pressed', 'true');
-                    state.tool = btn.dataset.tool;
-                });
-            });
-            $('#colorPicker').addEventListener('input', (e) => { state.color = e.target.value; });
-            $$('.swatch').forEach((s) => s.addEventListener('click', () => {
-                state.color = s.dataset.color;
-                $('#colorPicker').value = s.dataset.color;
+            $$('.brush-btn').forEach((b) => b.addEventListener('click', () => {
+                $$('.brush-btn').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+                b.setAttribute('aria-pressed', 'true'); state.tool = b.dataset.tool;
             }));
-            $('#sizeRange').addEventListener('input', (e) => {
-                state.size = Number(e.target.value);
-                $('#sizeLabel').textContent = state.size + 'px';
-            });
+            const brushColor = $('#brushColor'), brushHex = $('#brushHex');
+            const setBrush = (v) => { state.color = v; brushColor.value = v; brushHex.textContent = v.toUpperCase(); };
+            brushColor.addEventListener('input', (e) => setBrush(e.target.value));
+            $$('.swatch').forEach((s) => s.addEventListener('click', () => setBrush(s.dataset.color)));
+            $('#sizeRange').addEventListener('input', (e) => { state.size = +e.target.value; $('#sizeLabel').textContent = state.size + ' px'; });
             $('#clearBtn').addEventListener('click', () => {
-                pushHistory();
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = '#fdfcfa';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                takeSnapshot(); ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, canvas.width, canvas.height);
             });
-            $('#undoBtn').addEventListener('click', undo);
 
             /* =================================================================
-               2. Pattern generator (hand-drawn → repeating print)
+               2. 配色
+               ================================================================= */
+            const bind = (id, cssVar, key) => $(id).addEventListener('input', (e) => {
+                root.style.setProperty(cssVar, e.target.value); colors[key] = e.target.value;
+            });
+            bind('#dialColor', '--dial-bg', 'dial');
+            bind('#cardColor', '--card-bg', 'card');
+            bind('#hourColor', '--c-hour', 'hour');
+            bind('#minColor', '--c-min', 'min');
+            bind('#secColor', '--c-sec', 'sec');
+            bind('#tickColor', '--c-tick', 'tick');
+
+            /* =================================================================
+               3. 印花
                ================================================================= */
             const tileRange = $('#tileRange'), tileLabel = $('#tileLabel'), mirrorToggle = $('#mirrorToggle');
-            tileRange.addEventListener('input', () => {
-                tileLabel.textContent = `${tileRange.value} × ${tileRange.value}`;
-            });
+            tileRange.addEventListener('input', () => { tileLabel.textContent = `${tileRange.value} × ${tileRange.value}`; });
 
-            function makePattern(source, cols, rows, mirror) {
-                const tile = source.width;
-                const out = document.createElement('canvas');
-                out.width = tile * cols;
-                out.height = tile * rows;
-                const octx = out.getContext('2d');
-                for (let r = 0; r < rows; r++) {
-                    for (let c = 0; c < cols; c++) {
-                        octx.save();
-                        octx.translate(c * tile + tile / 2, r * tile + tile / 2);
-                        if (mirror && (r + c) % 2 === 1) octx.scale(-1, 1);
-                        octx.drawImage(source, -tile / 2, -tile / 2);
-                        octx.restore();
-                    }
+            function flatten() {
+                const c = document.createElement('canvas');
+                c.width = canvas.width; c.height = canvas.height;
+                const x = c.getContext('2d');
+                x.fillStyle = colors.dial; x.fillRect(0, 0, c.width, c.height);
+                x.drawImage(canvas, 0, 0);
+                return c;
+            }
+            function makePattern(src, cols, rows, mirror) {
+                const t = src.width, out = document.createElement('canvas');
+                out.width = t * cols; out.height = t * rows;
+                const o = out.getContext('2d');
+                for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+                    o.save(); o.translate(c * t + t / 2, r * t + t / 2);
+                    if (mirror && (r + c) % 2 === 1) o.scale(-1, 1);
+                    o.drawImage(src, -t / 2, -t / 2); o.restore();
                 }
                 return out;
             }
+            function currentPattern() {
+                const n = +tileRange.value;
+                return makePattern(flatten(), n, n, mirrorToggle.checked);
+            }
 
-            const dial = $('#dial');
-            const dlHint = $('#dlHint');
+            const dial = $('#dial'), fsDial = $('#fsDial');
+            let patternCanvas = null;
 
             $('#applyBtn').addEventListener('click', () => {
-                const n = Number(tileRange.value);
-                const tiled = makePattern(canvas, n, n, mirrorToggle.checked);
-                const url = tiled.toDataURL('image/png');
+                patternCanvas = currentPattern();
+                const url = patternCanvas.toDataURL('image/png');
                 dial.style.backgroundImage = `url(${url})`;
-                dlHint.innerHTML = `已套用 ${n}×${n} 印花。<a class="dl" href="${url}" download="abstract-time-pattern.png">下載這張圖樣</a>`;
+                fsDial.style.backgroundImage = `url(${url})`;
             });
-
             $('#resetFaceBtn').addEventListener('click', () => {
+                patternCanvas = null;
                 dial.style.backgroundImage = 'none';
-                dlHint.textContent = '';
+                fsDial.style.backgroundImage = 'none';
             });
 
             /* =================================================================
-               3. Clock hands (flat, no 3D — just accurate rotation)
+               4. 刻度與指針（DOM）
                ================================================================= */
-            const ticksHolder = $('#ticks-holder');
-            ticksHolder.remove();
-            for (let i = 0; i < 12; i++) {
-                const t = document.createElement('div');
-                t.className = 'tick' + (i % 3 === 0 ? ' major' : '');
-                t.style.transform = `translate(-50%,-50%) rotate(${i * 30}deg)`;
-                dial.appendChild(t);
-            }
+            [dial, fsDial].forEach((d) => {
+                for (let i = 0; i < 12; i++) {
+                    const t = document.createElement('div');
+                    t.className = 'spoke tick' + (i % 3 === 0 ? ' major' : '');
+                    t.style.transform = `rotate(${i * 30}deg)`;
+                    d.insertBefore(t, d.firstChild);
+                }
+            });
 
-            const hourHand = $('#hourHand'), minuteHand = $('#minuteHand'), secondHand = $('#secondHand');
-            const timeReadout = $('#timeReadout');
+            const hands = {
+                h: $('#hourHand'), m: $('#minuteHand'), s: $('#secondHand'),
+                fh: $('#fsHour'), fm: $('#fsMin'), fs: $('#fsSec')
+            };
+            const timeReadout = $('#timeReadout'), fsTime = $('#fsTime'), fsSecTxt = $('#fsSecTxt'), fsDate = $('#fsDate');
             const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const pad = (n) => String(n).padStart(2, '0');
+            const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            let nowAngles = { h: 0, m: 0, s: 0 };
 
             function tick() {
                 const d = new Date();
                 const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
                 const sf = reduce ? s : s + d.getMilliseconds() / 1000;
-                hourHand.style.transform = `translate(-50%,0) rotate(${((h % 12) * 30 + m * 0.5).toFixed(2)}deg)`;
-                minuteHand.style.transform = `translate(-50%,0) rotate(${(m * 6 + sf * 0.1).toFixed(2)}deg)`;
-                secondHand.style.transform = `translate(-50%,0) rotate(${(sf * 6).toFixed(2)}deg)`;
+                const aH = (h % 12) * 30 + m * .5 + sf / 120, aM = (m * 60 + sf) / 10, aS = sf * 6;
+                nowAngles = { h: aH, m: aM, s: aS };
+
+                const th = `rotate(${aH.toFixed(2)}deg)`, tm = `rotate(${aM.toFixed(2)}deg)`, ts = `rotate(${aS.toFixed(2)}deg)`;
+                hands.h.style.transform = th; hands.m.style.transform = tm; hands.s.style.transform = ts;
+                hands.fh.style.transform = th; hands.fm.style.transform = tm; hands.fs.style.transform = ts;
+
                 timeReadout.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+                fsTime.firstChild.nodeValue = `${pad(h)}:${pad(m)}`;
+                fsSecTxt.textContent = pad(s);
+                fsDate.textContent = `${d.getFullYear()} / ${pad(d.getMonth() + 1)} / ${pad(d.getDate())}　${DAYS[d.getDay()]}`;
+
                 requestAnimationFrame(tick);
             }
             requestAnimationFrame(tick);
+
+            /* =================================================================
+               5. 全螢幕模式
+               ================================================================= */
+            const fs = $('#fs'), fsExit = $('#fsExit');
+            let hideTimer = null;
+
+            function openFS() {
+                fs.classList.add('on');
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => { });   // 被拒絕也還是有覆蓋層
+                }
+                poke();
+            }
+            function closeFS() {
+                fs.classList.remove('on');
+                if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => { });
+            }
+            function poke() {                                   // 滑鼠動一下才顯示離開按鈕
+                fsExit.classList.add('show');
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => fsExit.classList.remove('show'), 2600);
+            }
+            $('#fsBtn').addEventListener('click', openFS);
+            fsExit.addEventListener('click', closeFS);
+            fs.addEventListener('pointermove', poke);
+            fs.addEventListener('pointerdown', poke);
+            addEventListener('keydown', (e) => { if (e.key === 'Escape' && fs.classList.contains('on')) closeFS(); });
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) fs.classList.remove('on');
+            });
+
+            /* =================================================================
+               6. 輸出分享圖
+               把時鐘重新畫到一張指定尺寸的 canvas 上（不是截圖，是重繪）
+               ================================================================= */
+            const PRESETS = [
+                { id: 'ig', name: 'Instagram 貼文', w: 1080, h: 1080 },
+                { id: 'story', name: 'IG / FB 限動', w: 1080, h: 1920 },
+                { id: 'og', name: 'Facebook / X', w: 1200, h: 630 },
+                { id: 'li', name: 'LinkedIn', w: 1200, h: 627 },
+                { id: 'deskt', name: '電腦桌布', w: 1920, h: 1080 },
+                { id: 'phone', name: '手機桌布', w: 1170, h: 2532 }
+            ];
+            let picked = PRESETS[0];
+
+            const grid = $('#sizeGrid');
+            PRESETS.forEach((p, i) => {
+                const b = document.createElement('button');
+                b.className = 'size-btn'; b.type = 'button';
+                b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+                b.innerHTML = `<b>${p.name}</b><span>${p.w} × ${p.h}</span>`;
+                b.addEventListener('click', () => {
+                    $$('.size-btn').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+                    b.setAttribute('aria-pressed', 'true');
+                    picked = p;
+                });
+                grid.appendChild(b);
+            });
+
+            /* 把錶面畫到 ctx：底色 → 印花（裁成圓形）→ 刻度 → 指針 → 軸心 */
+            function drawDial(c, cx, cy, r) {
+                c.save();
+                c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.clip();
+                c.fillStyle = colors.dial; c.fillRect(cx - r, cy - r, r * 2, r * 2);
+                if (patternCanvas) {
+                    const s = (r * 2) / Math.min(patternCanvas.width, patternCanvas.height);   // cover
+                    const w = patternCanvas.width * s, h = patternCanvas.height * s;
+                    c.drawImage(patternCanvas, cx - w / 2, cy - h / 2, w, h);
+                }
+                c.restore();
+
+                // 刻度
+                for (let i = 0; i < 12; i++) {
+                    const major = i % 3 === 0;
+                    const a = (i * 30 - 90) * Math.PI / 180;
+                    const r0 = r * .9, r1 = r * (major ? .75 : .8);
+                    c.save();
+                    c.globalAlpha = major ? .6 : .35;
+                    c.strokeStyle = colors.tick;
+                    c.lineWidth = r * (major ? .018 : .012);
+                    c.lineCap = 'round';
+                    c.beginPath();
+                    c.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+                    c.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+                    c.stroke();
+                    c.restore();
+                }
+
+                // 指針
+                const hand = (deg, len, w, col) => {
+                    const a = (deg - 90) * Math.PI / 180;
+                    c.save(); c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round';
+                    c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+                    c.stroke(); c.restore();
+                };
+                hand(nowAngles.h, r * .52, r * .041, colors.hour);
+                hand(nowAngles.m, r * .72, r * .026, colors.min);
+                hand(nowAngles.s, r * .82, r * .012, colors.sec);
+
+                // 軸心
+                c.fillStyle = colors.hour;
+                c.beginPath(); c.arc(cx, cy, r * .036, 0, Math.PI * 2); c.fill();
+            }
+
+            function renderCard(preset, withTime) {
+                const { w, h } = preset;
+                const out = document.createElement('canvas');
+                out.width = w; out.height = h;
+                const c = out.getContext('2d');
+                c.fillStyle = colors.card; c.fillRect(0, 0, w, h);
+
+                const d = new Date();
+                const hh = pad(d.getHours()), mm = pad(d.getMinutes()), ss = pad(d.getSeconds());
+                const dateTxt = `${d.getFullYear()} / ${pad(d.getMonth() + 1)} / ${pad(d.getDate())}`;
+                const landscape = w / h > 1.25;
+
+                let cx, cy, r;
+                if (!withTime) {
+                    r = Math.min(w, h) * .36; cx = w / 2; cy = h / 2;
+                    drawDial(c, cx, cy, r);
+                } else if (landscape) {
+                    // 橫式：時鐘在左，時間在右
+                    r = Math.min(w * .22, h * .36);
+                    cx = w * .32; cy = h / 2;
+                    drawDial(c, cx, cy, r);
+                    const tx = w * .60;
+                    c.fillStyle = colors.hour; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+                    c.font = `200 ${r * .88}px Inter, system-ui, sans-serif`;
+                    c.fillText(`${hh}:${mm}`, tx, cy + r * .12);
+                    c.globalAlpha = .55;
+                    c.font = `300 ${r * .34}px Inter, system-ui, sans-serif`;
+                    c.fillText(ss, tx + c.measureText(`${hh}:${mm}`).width * 0 + r * 1.78, cy + r * .12);
+                    c.globalAlpha = .6;
+                    c.font = `300 ${r * .17}px Inter, system-ui, sans-serif`;
+                    c.fillText(dateTxt, tx, cy + r * .48);
+                    c.globalAlpha = .3;
+                    c.font = `300 ${r * .11}px Inter, system-ui, sans-serif`;
+                    c.fillText('ABSTRACT TIME', tx, cy + r * .72);
+                    c.globalAlpha = 1;
+                } else {
+                    // 直式／方形：時鐘在上，時間在下
+                    r = Math.min(w * .34, h * .26);
+                    cx = w / 2; cy = h * .40;
+                    drawDial(c, cx, cy, r);
+                    c.textAlign = 'center'; c.fillStyle = colors.hour;
+                    const baseY = cy + r * 1.42;
+                    c.font = `200 ${r * .62}px Inter, system-ui, sans-serif`;
+                    c.fillText(`${hh}:${mm}`, cx, baseY);
+                    c.globalAlpha = .6;
+                    c.font = `300 ${r * .16}px Inter, system-ui, sans-serif`;
+                    c.fillText(dateTxt, cx, baseY + r * .34);
+                    c.globalAlpha = .3;
+                    c.font = `300 ${r * .1}px Inter, system-ui, sans-serif`;
+                    c.fillText('ABSTRACT TIME', cx, baseY + r * .58);
+                    c.globalAlpha = 1;
+                }
+                return out;
+            }
+
+            function download(canvasEl, name) {
+                canvasEl.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = name;
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }, 'image/png');
+            }
+
+            $('#exportBtn').addEventListener('click', () => {
+                const card = renderCard(picked, $('#showTimeToggle').checked);
+                download(card, `abstract-time-${picked.id}-${picked.w}x${picked.h}.png`);
+                $('#exportHint').textContent = `已輸出 ${picked.name}（${picked.w} × ${picked.h}）。`;
+            });
+            $('#exportTileBtn').addEventListener('click', () => {
+                download(currentPattern(), 'abstract-time-pattern.png');
+                $('#exportHint').textContent = '已輸出純印花圖樣，可用於印刷或當底圖。';
+            });
         })();
     </script>
 </body>
